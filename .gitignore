@@ -40,3 +40,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Book (付費內容)
+book/
