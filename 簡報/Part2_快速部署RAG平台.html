@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Part 2 - 快速部署 RAG 平台</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Microsoft JhengHei', 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow: hidden;
+            color: #333;
+        }
+        .nav-bar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 30px;
+            z-index: 10000;
+        }
+        .nav-title { font-size: 22px; font-weight: 700; color: #fff; }
+        .nav-buttons { display: flex; gap: 12px; }
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        .nav-btn:hover { background: rgba(255, 255, 255, 0.4); transform: translateY(-2px); }
+        .nav-arrow {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.25);
+            color: white;
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.4);
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 9000;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .nav-arrow:hover { background: rgba(255,255,255,0.5); transform: translateY(-50%) scale(1.1); }
+        .prev-arrow { left: 30px; }
+        .next-arrow { right: 30px; }
+        .nav-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
+        .slide-container { width: 100%; height: 100vh; padding-top: 60px; position: relative; z-index: 1; }
+        .slide {
+            position: absolute;
+            top: 60px; left: 0;
+            width: 100%;
+            height: calc(100vh - 60px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            z-index: 10;
+        }
+        .slide.active { display: flex; opacity: 1; z-index: 20; }
+        .content-card {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            padding: 50px;
+            max-width: 1400px;
+            width: 95%;
+            max-height: 88vh;
+            overflow-y: auto;
+        }
+        h1 { color: #667eea; font-size: 52px; margin-bottom: 24px; text-align: center; }
+        h2 { color: #764ba2; font-size: 36px; margin-bottom: 30px; border-bottom: 3px solid #667eea; padding-bottom: 12px; }
+        h3 { color: #667eea; font-size: 24px; margin: 25px 0 15px 0; }
+        p, li { font-size: 20px; line-height: 1.8; color: #444; margin-bottom: 12px; }
+        code { background: #f0f2f5; padding: 3px 8px; border-radius: 6px; font-family: 'Consolas', monospace; color: #d63384; font-weight: 600; }
+        pre { background: #1e1e1e; color: #d4d4d4; padding: 20px; border-radius: 12px; overflow-x: auto; margin: 20px 0; font-size: 16px; line-height: 1.6; font-family: 'Consolas', monospace; }
+        .box { padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 6px solid; font-size: 18px; }
+        .info { background: #e3f2fd; border-color: #2196f3; color: #0d47a1; }
+        .warning { background: #fff3cd; border-color: #ffc107; color: #856404; }
+        .success { background: #d4edda; border-color: #28a745; color: #155724; }
+        .danger { background: #f8d7da; border-color: #dc3545; color: #721c24; }
+        .highlight { background: linear-gradient(120deg, #667eea 0%, #764ba2 100%); padding: 2px 8px; border-radius: 4px; font-weight: bold; color: white; }
+        .concept-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 25px; }
+        .concept-card { background: #f8f9fa; padding: 20px; border-radius: 15px; border: 1px solid #e9ecef; transition: transform 0.3s; }
+        .concept-card:hover { transform: translateY(-5px); border-color: #667eea; }
+        .indicators { position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); display: flex; gap: 12px; z-index: 4000; padding: 10px 25px; background: rgba(0,0,0,0.3); border-radius: 30px; }
+        .dot { width: 12px; height: 12px; background: rgba(255,255,255,0.4); border-radius: 50%; cursor: pointer; }
+        .dot.active { background: #667eea; transform: scale(1.3); }
+        .emoji-large { font-size: 70px; margin-bottom: 20px; }
+        .center { text-align: center; }
+        .step-box { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 25px; border-radius: 12px; margin: 15px 0; font-size: 22px; font-weight: bold; }
+        .command-box { background: #1e1e1e; border-radius: 12px; padding: 20px; margin: 15px 0; }
+        .command-box .label { color: #888; font-size: 14px; margin-bottom: 8px; }
+        .command-box code { background: transparent; color: #4ec9b0; font-size: 18px; }
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+    <div class="nav-bar">
+        <div class="nav-title">Part 2 - 快速部署 RAG 平台</div>
+        <div class="nav-buttons">
+            <button class="nav-btn" onclick="goToSlide(0)">首頁</button>
+            <button class="nav-btn" onclick="toggleFullscreen()">全螢幕</button>
+            <a href="index.html" class="nav-btn">回總覽</a>
+        </div>
+    </div>
+
+    <div class="slide-container">
+
+        <!-- Slide 1: 封面 -->
+        <div class="slide active">
+            <div class="content-card center">
+                <div class="emoji-large">🚀</div>
+                <h1>快速部署 RAG 平台</h1>
+                <h2 style="border: none; font-weight: normal; font-size: 28px; color: #666;">
+                    Part 2：10-15 分鐘完成部署，立即體驗 RAG 效果
+                </h2>
+                <div style="margin-top: 40px; display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+                    <span class="highlight">虛擬環境</span>
+                    <span class="highlight">安裝套件</span>
+                    <span class="highlight">啟動伺服器</span>
+                    <span class="highlight">實際測試</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 2: 本單元目標 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🎯 本單元目標</h2>
+                <p>跟著步驟做，10-15 分鐘就能看到成果！</p>
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h3>Step 1</h3>
+                        <p>確認專案檔案位置</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>Step 2</h3>
+                        <p>建立 Python 虛擬環境</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>Step 3</h3>
+                        <p>安裝必要套件</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>Step 4</h3>
+                        <p>啟動 Flask 伺服器</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>Step 5</h3>
+                        <p>設定 API Key</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>Step 6</h3>
+                        <p>匯入知識庫並測試</p>
+                    </div>
+                </div>
+                <div class="box success" style="margin-top: 30px;">
+                    <strong>先看到效果，再了解原理！</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: Step 1 確認檔案 -->
+        <div class="slide">
+            <div class="content-card">
+                <div class="step-box">Step 1：確認專案檔案位置</div>
+                <p>首先確認你已經有專案檔案，應該在以下路徑：</p>
+                <div class="command-box">
+                    <div class="label">專案路徑</div>
+                    <code>D:\自己架設AI_零基礎到大師\CH3_打造RAG知識庫問答平台\</code>
+                </div>
+                <h3>📁 你應該看到這些檔案：</h3>
+                <div class="two-col">
+                    <div>
+                        <ul>
+                            <li><code>app.py</code> - Flask 後端主程式</li>
+                            <li><code>requirements.txt</code> - 套件清單</li>
+                            <li><code>README.md</code> - 說明文件</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <ul>
+                            <li><code>templates/</code> - 網頁模板</li>
+                            <li><code>static/</code> - CSS、JS</li>
+                            <li><code>data/</code> - 範例知識庫</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="box info">
+                    <strong>確認完畢？</strong> 接下來建立虛擬環境！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: Step 2 虛擬環境 -->
+        <div class="slide">
+            <div class="content-card">
+                <div class="step-box">Step 2：建立並啟動虛擬環境</div>
+                <p>虛擬環境是 Python 專案的獨立空間，避免套件版本衝突。</p>
+
+                <h3>📌 Windows 用戶</h3>
+                <div class="command-box">
+                    <div class="label">切換到專案資料夾</div>
+                    <code>cd D:\自己架設AI_零基礎到大師\CH3_打造RAG知識庫問答平台</code>
+                </div>
+                <div class="command-box">
+                    <div class="label">建立虛擬環境</div>
+                    <code>python -m venv venv</code>
+                </div>
+                <div class="command-box">
+                    <div class="label">啟動虛擬環境</div>
+                    <code>venv\Scripts\activate</code>
+                </div>
+
+                <div class="box success">
+                    <strong>成功標誌：</strong>看到提示符號前面出現 <code>(venv)</code> 就表示成功！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: macOS/Linux -->
+        <div class="slide">
+            <div class="content-card">
+                <div class="step-box">Step 2：macOS / Linux 用戶</div>
+
+                <div class="command-box">
+                    <div class="label">切換到專案資料夾</div>
+                    <code>cd ~/自己架設AI_零基礎到大師/CH3_打造RAG知識庫問答平台</code>
+                </div>
+                <div class="command-box">
+                    <div class="label">建立虛擬環境</div>
+                    <code>python3 -m venv venv</code>
+                </div>
+                <div class="command-box">
+                    <div class="label">啟動虛擬環境</div>
+                    <code>source venv/bin/activate</code>
+                </div>
+
+                <div class="box info">
+                    <strong>小提醒：</strong>每次開啟新的終端機視窗，都要重新啟動虛擬環境！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: Step 3 安裝套件 -->
+        <div class="slide">
+            <div class="content-card">
+                <div class="step-box">Step 3：安裝必要套件</div>
+                <p>確認虛擬環境已啟動（看到 <code>(venv)</code>），然後執行：</p>
+
+                <div class="command-box">
+                    <div class="label">安裝所有套件</div>
+                    <code>pip install -r requirements.txt</code>
+                </div>
+
+                <div class="box warning">
+                    <strong>⚠️ 重要提醒：</strong><br>
+                    首次安裝會下載 AI 模型（約 400MB），需要 5-10 分鐘，請耐心等候！
+                </div>
+
+                <h3>📦 安裝的主要套件</h3>
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <code>flask</code>
+                        <p style="font-size: 16px;">網頁框架</p>
+                    </div>
+                    <div class="concept-card">
+                        <code>openai</code>
+                        <p style="font-size: 16px;">OpenAI API</p>
+                    </div>
+                    <div class="concept-card">
+                        <code>google-generativeai</code>
+                        <p style="font-size: 16px;">Gemini API</p>
+                    </div>
+                    <div class="concept-card">
+                        <code>sentence-transformers</code>
+                        <p style="font-size: 16px;">向量嵌入核心</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: Step 4 啟動伺服器 -->
+        <div class="slide">
+            <div class="content-card">
+                <div class="step-box">Step 4：啟動 Flask 伺服器</div>
+                <p>套件安裝完成後，只需一行指令就能啟動！</p>
+
+                <div class="command-box">
+                    <div class="label">啟動伺服器</div>
+                    <code>python app.py</code>
+                </div>
+
+                <div class="box success">
+                    <strong>成功畫面：</strong>
+                    <pre style="background: transparent; color: inherit; padding: 10px 0; margin: 10px 0;">
+ * Serving Flask app 'app'
+ * Debug mode: on
+ * Running on http://127.0.0.1:5001
+Press CTRL+C to quit</pre>
+                </div>
+
+                <div class="box info">
+                    <strong>📌 小提醒：</strong>
+                    <ul style="margin: 10px 0 0 20px;">
+                        <li>終端機會保持運行狀態，<strong>不要關閉</strong></li>
+                        <li>按 <code>Ctrl+C</code> 可以停止伺服器</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: Step 5 開啟網頁 -->
+        <div class="slide">
+            <div class="content-card">
+                <div class="step-box">Step 5：開啟網頁介面</div>
+                <p>保持終端機運行，開啟瀏覽器並輸入：</p>
+
+                <div class="command-box" style="text-align: center;">
+                    <div class="label">網址</div>
+                    <code style="font-size: 28px;">http://127.0.0.1:5001</code>
+                </div>
+
+                <h3>🖥️ 你會看到...</h3>
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h3>主標題</h3>
+                        <p>RAG 知識庫 AI 問答平台</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>功能按鈕</h3>
+                        <p>⚙️ 設定、🗄️ 知識庫管理、🗑️ 清空對話</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>對話區域</h3>
+                        <p>中間顯示對話內容</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>輸入框</h3>
+                        <p>下方輸入訊息</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: Step 6 設定 API Key -->
+        <div class="slide">
+            <div class="content-card">
+                <div class="step-box">Step 6：設定 API Key</div>
+                <p>點擊右上角 <strong>⚙️ 設定</strong> 按鈕，進行以下設定：</p>
+
+                <div class="two-col">
+                    <div class="concept-card">
+                        <h3>1. 選擇 AI 服務</h3>
+                        <p>OpenAI 或 Google AI Studio</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>2. 輸入 API Key</h3>
+                        <p>貼上你的 API Key</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>3. 選擇模型</h3>
+                        <p>GPT-4o 或 Gemini 2.0 Flash</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>4. 選擇角色</h3>
+                        <p>建議選「知識庫助理」</p>
+                    </div>
+                </div>
+
+                <div class="box danger" style="margin-top: 25px;">
+                    <strong>⚠️ 最重要！務必勾選：</strong><br>
+                    <span style="font-size: 24px;">☑️ 啟用 RAG 知識庫檢索</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: Step 7 匯入知識庫 -->
+        <div class="slide">
+            <div class="content-card">
+                <div class="step-box">Step 7：匯入範例知識庫</div>
+                <p>點擊右上角 <strong>🗄️ 知識庫管理</strong> 按鈕</p>
+
+                <ol style="margin: 25px 0;">
+                    <li style="margin: 15px 0;">點擊 <strong>「📤 匯入 CSV/Excel」</strong> 按鈕</li>
+                    <li style="margin: 15px 0;">選擇檔案：<code>data/knowledge_base_example.csv</code></li>
+                    <li style="margin: 15px 0;">點擊 <strong>「上傳」</strong></li>
+                    <li style="margin: 15px 0;">等待 <strong>「成功匯入 XX 筆資料」</strong> 訊息</li>
+                </ol>
+
+                <div class="box success">
+                    <strong>匯入完成！</strong> 知識庫表格會顯示所有資料，包含問題、答案、分類等欄位。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 11: 測試 RAG -->
+        <div class="slide">
+            <div class="content-card">
+                <div class="step-box">Step 8：測試 RAG 問答功能！</div>
+                <p>關閉知識庫管理介面，回到主畫面，試試這些問題：</p>
+
+                <div class="concept-grid">
+                    <div class="concept-card" style="background: #e3f2fd;">
+                        <code style="font-size: 20px;">什麼是 Flask？</code>
+                    </div>
+                    <div class="concept-card" style="background: #fff3cd;">
+                        <code style="font-size: 20px;">RAG 是什麼技術？</code>
+                    </div>
+                    <div class="concept-card" style="background: #d4edda;">
+                        <code style="font-size: 20px;">Python 虛擬環境有什麼用？</code>
+                    </div>
+                    <div class="concept-card" style="background: #f8d7da;">
+                        <code style="font-size: 20px;">如何學習程式設計？</code>
+                    </div>
+                </div>
+
+                <div class="box info" style="margin-top: 25px;">
+                    <strong>觀察重點：</strong>
+                    <ul style="margin: 10px 0 0 20px;">
+                        <li>AI 回答下方會顯示 <strong>📚 參考來源</strong></li>
+                        <li>每個來源都有 <strong>相似度百分比</strong></li>
+                        <li>這就是 RAG 的精髓！</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 12: 成功畫面說明 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🎉 恭喜！你成功部署了 RAG 平台</h2>
+
+                <div class="two-col">
+                    <div>
+                        <h3>📚 參考來源區塊包含：</h3>
+                        <ul>
+                            <li><strong>問題</strong>：知識庫中最相關的問題</li>
+                            <li><strong>分類</strong>：這筆知識的分類</li>
+                            <li><strong>相似度</strong>：語意相似程度（%）</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>⚡ RAG 運作過程：</h3>
+                        <ol>
+                            <li>你的問題 → 轉換成向量</li>
+                            <li>向量搜尋知識庫</li>
+                            <li>找到相關內容給 AI</li>
+                            <li>AI 生成精準回答</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="box success" style="margin-top: 30px;">
+                    <strong>這就是 RAG 的魔力！</strong> AI 不再只靠記憶，而是能參考你的專業知識庫。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 13: 常見問題 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>❓ 常見問題快速排除</h2>
+
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h3>❌ 套件安裝失敗</h3>
+                        <p>先升級 pip：<br><code>python -m pip install --upgrade pip</code></p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>❌ 網頁打不開</h3>
+                        <p>確認終端機顯示 <code>Running on...</code> 且沒關閉</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>❌ AI 沒用知識庫</h3>
+                        <p>確認設定中勾選了「啟用 RAG 知識庫檢索」</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>❌ 模型下載很慢</h3>
+                        <p>正常現象，約 400MB，請耐心等待</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 14: 總結 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>📝 Part 2 總結</h2>
+
+                <div class="concept-grid">
+                    <div class="concept-card" style="background: #e3f2fd;">
+                        <h3>✅ 完成項目</h3>
+                        <ul>
+                            <li>建立虛擬環境</li>
+                            <li>安裝套件</li>
+                            <li>啟動伺服器</li>
+                            <li>設定 API Key</li>
+                            <li>匯入知識庫</li>
+                            <li>測試 RAG 問答</li>
+                        </ul>
+                    </div>
+                    <div class="concept-card" style="background: #d4edda;">
+                        <h3>🎯 學到了</h3>
+                        <ul>
+                            <li>RAG 實際運作效果</li>
+                            <li>參考來源的價值</li>
+                            <li>相似度的意義</li>
+                            <li>知識庫管理基礎</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="box info" style="margin-top: 30px; text-align: center;">
+                    <h3>🚀 下一步</h3>
+                    <p style="font-size: 22px;">Part 3：深入了解向量嵌入與相似度搜尋的原理！</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <button class="nav-arrow prev-arrow" id="prevBtn" onclick="changeSlide(-1)">❮</button>
+    <button class="nav-arrow next-arrow" id="nextBtn" onclick="changeSlide(1)">❯</button>
+    <div class="indicators" id="indicatorContainer"></div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+
+        function init() {
+            createIndicators();
+            showSlide(0);
+            updateButtons();
+            document.addEventListener('keydown', handleKeydown);
+        }
+
+        function handleKeydown(e) {
+            if (e.key === 'ArrowLeft') changeSlide(-1);
+            if (e.key === 'ArrowRight') changeSlide(1);
+        }
+
+        function createIndicators() {
+            const container = document.getElementById('indicatorContainer');
+            container.innerHTML = '';
+            slides.forEach((_, index) => {
+                const dot = document.createElement('div');
+                dot.className = 'dot';
+                dot.onclick = () => goToSlide(index);
+                container.appendChild(dot);
+            });
+        }
+
+        function showSlide(index) {
+            if (index < 0) index = 0;
+            if (index >= totalSlides) index = totalSlides - 1;
+            slides.forEach(slide => slide.classList.remove('active'));
+            slides[index].classList.add('active');
+            currentSlide = index;
+            const dots = document.querySelectorAll('.dot');
+            dots.forEach((dot, idx) => dot.classList.toggle('active', idx === index));
+            updateButtons();
+        }
+
+        function changeSlide(direction) { showSlide(currentSlide + direction); }
+        function goToSlide(index) { showSlide(index); }
+        function updateButtons() {
+            document.getElementById('prevBtn').disabled = currentSlide === 0;
+            document.getElementById('nextBtn').disabled = currentSlide === totalSlides - 1;
+        }
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+            else if (document.exitFullscreen) document.exitFullscreen();
+        }
+        init();
+    </script>
+</body>
+</html>
