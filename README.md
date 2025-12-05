@@ -2,13 +2,25 @@
 
 一個整合 RAG（Retrieval-Augmented Generation）技術的地端 AI 問答平台，支援 Google 試算表作為知識庫來源，具備完整的知識庫管理介面。
 
+## 📺 教學簡報
+
+**[點此查看線上教學簡報](https://chatgpt3a01.github.io/RAG-Knowledge-Base-Platform/簡報/)**
+
+| 簡報 | 主題 |
+|------|------|
+| [Part 1](https://chatgpt3a01.github.io/RAG-Knowledge-Base-Platform/簡報/Part1_RAG技術入門與價值.html) | RAG 技術入門與價值 |
+| [Part 2](https://chatgpt3a01.github.io/RAG-Knowledge-Base-Platform/簡報/Part2_快速部署RAG平台.html) | 快速部署 RAG 平台 |
+| [Part 3](https://chatgpt3a01.github.io/RAG-Knowledge-Base-Platform/簡報/Part3_向量嵌入與相似度原理.html) | 向量嵌入與相似度原理 |
+| [Part 4](https://chatgpt3a01.github.io/RAG-Knowledge-Base-Platform/簡報/Part4_系統架構與程式解析.html) | 系統架構與程式解析 |
+| [Part 5](https://chatgpt3a01.github.io/RAG-Knowledge-Base-Platform/簡報/Part5_知識庫管理與進階應用.html) | 知識庫管理與進階應用 |
+
 ## 🌟 功能特色
 
 ### 核心功能
 - ✅ **RAG 知識庫系統**：使用向量相似度搜尋提供精確回答
 - ✅ **最新 AI 模型**：
-  - OpenAI：GPT-4o、GPT-4 Turbo、O1
-  - Google：Gemini 2.0 Flash、Gemini 1.5 Pro
+  - OpenAI：GPT-4o、GPT-4.1、GPT-4 Turbo、GPT-5.1
+  - Google：Gemini 2.5 Flash、Gemini 2.5 Pro、Gemini 3.0 Flash、Gemini 3.0 Pro
 - ✅ **Google 試算表整合**：可將 Google Sheets 作為知識庫來源
 - ✅ **GAS API 部署**：提供完整的 Google Apps Script API
 
