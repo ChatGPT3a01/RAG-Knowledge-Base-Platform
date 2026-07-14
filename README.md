@@ -19,8 +19,8 @@
 ### 核心功能
 - ✅ **RAG 知識庫系統**：使用向量相似度搜尋提供精確回答
 - ✅ **最新 AI 模型**：
-  - OpenAI：GPT-5.5、GPT-5.5、GPT-5.5 Turbo、GPT-5.5
-  - Google：Gemini 2.5 Flash、Gemini 2.5 Pro、Gemini 3.0 Flash、Gemini 3.0 Pro
+  - OpenAI：GPT-5.6 Terra、GPT-5.6 Terra、GPT-5.6 Terra Turbo、GPT-5.6 Terra
+  - Google：Gemini 3.5 Flash、Gemini 3.1 Pro、Gemini 3.0 Flash、Gemini 3.0 Pro
 - ✅ **Google 試算表整合**：可將 Google Sheets 作為知識庫來源
 - ✅ **GAS API 部署**：提供完整的 Google Apps Script API
 
@@ -93,7 +93,7 @@ pip install -r requirements.txt
 
 **注意**：
 - 首次安裝 `sentence-transformers` 會自動下載 embedding 模型（約 400MB），請確保網路連線穩定
-- 已將 `openai` 套件升級到 2.x 版本，支援最新的 GPT-5.5、GPT-5.5、GPT-5.5 模型
+- 已將 `openai` 套件升級到 2.x 版本，支援最新的 GPT-5.6 Terra、GPT-5.6 Terra、GPT-5.6 Terra 模型
 - 如果安裝失敗，請先升級 pip：`python -m pip install --upgrade pip`
 
 ### 2. 啟動伺服器
